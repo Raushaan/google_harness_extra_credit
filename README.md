@@ -2,11 +2,10 @@
 
 ## 1. Connection to Google's Harness Engineering
 
-Google's *AI harness* concept emphasizes that a reliable agent needs more than a language model capable of generating instructions. The surrounding software must organize a control loop, expose appropriate tools, validate requests, manage execution state, enforce safety boundaries, observe the environment, and evaluate whether the intended outcome actually occurred. The Agent Airways browser agent follows this architecture. Qwen3:8B proposes one browser action at a time in JSON, while a Python harness parses the proposal, checks the tool name and arguments, invokes the corresponding Playwright tool, and sends the tool's observed result back to the model. The model then chooses its next action using that feedback. This separates decision-making from execution: the model can propose an action, but it cannot bypass Python's validation or independently declare that the reservation succeeded. The full workflow also uses review checks, a human-approval requirement, a confirmation verifier, and a maximum-step stopping rule. Together, these components illustrate how a harness can make an agent more controlled, observable, and testable even when the underlying model makes mistakes.
+Google's *AI harness* concept emphasizes that a reliable agent needs more than a language model capable of generating instructions. The surrounding software must organize a control loop, expose appropriate tools, validate requests, manage execution state, enforce safety boundaries, observe the environment and evaluate whether the intended outcome actually occurred. The Agent Airways browser agent follows this architecture. Qwen3:8B proposes one browser action at a time in JSON, while a Python harness parses the proposal, checks the tool name and arguments, invokes the corresponding Playwright tool and sends the tool's observed result back to the model. The model then chooses its next action using that feedback. This separates decision-making from execution: the model can propose an action, but it cannot bypass Python's validation or independently declare that the reservation succeeded. The full workflow also uses review checks, a human-approval requirement, a confirmation verifier and a maximum-step stopping rule. Together, these components illustrate how a harness can make an agent more controlled, observable, and testable even when the underlying model makes mistakes.
 
 **Connection to the class implementation:** `parse_action()` checks the model's JSON format; `run_requested_tool()` validates and dispatches requests to student-built tools; `run_agent()` manages the action–observation loop and stopping conditions; `check_review_against_goal()` compares the review with the requested trip; and `verify_confirmation()` checks the actual final state. The experiment below evaluates the reliability of this existing harness rather than introducing Google's Agent Development Kit (ADK).
 
-**Course reference:** https://g.dev/ai/ai-harness
 
 ## 2. Definition of Success and How Python Checks It
 
@@ -23,18 +22,6 @@ Python uses multiple layers of evidence to decide whether the task has succeeded
 **Strict success criterion:** A run is a **success only when Python receives a successful result from `verify_confirmation`**. Reaching the passenger screen, correctly filling form fields, clicking an intermediate button, or a model-generated claim of success is insufficient. Any run without that final verification is recorded as a **failure of the full task**, even if some intermediate actions worked correctly. This distinction matters because a partially completed browser workflow is not a completed reservation.
 
 ## 3. Experiment Setup and Methodology
-
-| Setting | Value used in the uploaded traces |
-| --- | --- |
-| Website | [Agent Airways practice site](https://onyourmark.github.io/browser-agent-form/travel/) |
-| Agent | Existing class browser agent; full mode with 16 tools |
-| Model / serving | Qwen3:8B via Ollama (as configured in the class notebook) |
-| Browser control | Python and Playwright/Chromium |
-| Trip | DCA → BOS, November 17, 2026, flight AA101, seat 1A |
-| Passenger | Test Traveler; `test.traveler@example.com` |
-| Optional extras | Checked bag = false; priority boarding = false |
-| Maximum steps | 50 per run |
-| Evidence | Five JSON action traces and five end-state screenshots |
 
 Five provided trace files were analyzed using the **same traveler request and expected details**. Each trace begins with the search screen visible, which is consistent with starting the task from the beginning; the supplied evidence does not independently establish how the Colab runtime was restarted or whether all code files remained unchanged between executions. The recorded model proposals and results are the same across the five traces except for minor flight-results waiting times. Thus the comparison describes **five recorded attempts under the same apparent setup**, while avoiding unsupported claims about unobserved environment changes.
 
